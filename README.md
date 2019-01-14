@@ -9,9 +9,9 @@ The following series of PySpark lessons and labs in this section will provide yo
 
 You will be able to:
 
-* Describe Spark's parallalism with master and executor nodes. 
-* Understand SparkContext() for managing connections in parallel applications. 
-* Provide an overview of major SparkContext() properties and methods.  
+* Describe Spark's parallalism with master and executor nodes 
+* Understand SparkContext() for managing connections in parallel applications
+* Provide an overview of major SparkContext() properties and methods
 
 ## Cluster Resource Manager
 
