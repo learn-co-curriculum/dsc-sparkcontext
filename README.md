@@ -1,17 +1,19 @@
 
 # Understanding `SparkContext`
 
-### Introduction
+## Introduction
 
 The following series of PySpark lessons and labs in this section will provide you with an introduction to **Apache Spark**, the leading framework for big data processing in jupyter notebooks and PySpark, using a PySpark docker image in a standalone mode. These lessons require you explore the spark documentation and explore and practice methods and properties which are not directly covered in the labs. IN this first lesson, we'll look at creating a spark session , called a Spark Context and explore its properties. 
 
-## OBJECTIVES
+## Objectives
+
+You will be able to:
 
 * Describe Spark's parallalism with master and executor nodes. 
-* Understand `SparkContext()` for managing connections in parallel applications. 
-* Provide an overview of major `SparkContext()` properties and methods.  
+* Understand SparkContext() for managing connections in parallel applications. 
+* Provide an overview of major SparkContext() properties and methods.  
 
-### Cluster Resource Manager
+## Cluster Resource Manager
 
 Spark comes bundled with a **Cluster Resource Manager** which divides and shares the physical resources of a cluster of machines between multiple Spark applications. Spark's **Standalone cluster manager** operates in the standalone mode and allows Spark to manage its own cluster on a local machine. We will mainly use the standalone cluster manager for resource allocation in these labs. 
 
@@ -28,7 +30,7 @@ The spark driver declares the transformations and actions on data and submits su
 
 For our labs, this distributed arrangement will be simulated on a single machine allowing you to initialize master and worker nodes. 
 
-### `SparkContext( )`
+## `SparkContext()`
 
 In order to use Spark and its API we will need to use a **SparkContext**. SparkContext is the entry point to any spark functionality. When we run any Spark application, a driver program starts, which has the main function and your SparkContext gets initiated here. The driver program then runs the operations inside the executors on worker nodes as shown above.
 
@@ -775,6 +777,6 @@ Once shut down, you can no longer access spark functionality before starting a n
 
 - [Apache Spark Context](https://data-flair.training/blogs/learn-apache-spark-sparkcontext/)
 
-### Summary:
+## Summary
 
 In this short lab, we saw how SparkContext is used as an entry point to Spark applications. We learnt how to start a SparkContext, how to list and use some of the attributes and methods in SparkContext and how to shut it down. Students are encouraged to explore other attributes and methods offered by the sc object. Some of these, namely creating and transforming datasets as RDDs will be explored in later labs. 
