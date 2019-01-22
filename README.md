@@ -1,9 +1,9 @@
 
-# Understanding `SparkContext`
+# Understanding `SparkContext` - Lab
 
 ## Introduction
 
-The following series of PySpark lessons and labs in this section will provide you with an introduction to **Apache Spark**, the leading framework for big data processing in jupyter notebooks and PySpark, using a PySpark docker image in a standalone mode. These lessons require you explore the spark documentation and explore and practice methods and properties which are not directly covered in the labs. IN this first lesson, we'll look at creating a spark session , called a Spark Context and explore its properties. 
+The following series of PySpark lessons and labs in this section will provide you with an introduction to **Apache Spark**, the leading framework for big data processing in jupyter notebooks and PySpark, using a PySpark docker image in a standalone mode. These lessons require you explore the spark documentation and explore and practice methods and properties which are not directly covered in the labs. In this first lesson, we'll look at creating a spark session , called a Spark Context and explore its properties. 
 
 ## Objectives
 
