@@ -17,9 +17,10 @@ You will be able to:
 
 Spark comes bundled with a **Cluster Resource Manager** which divides and shares the physical resources of a cluster of machines between multiple Spark applications. Spark's **Standalone cluster manager** operates in the standalone mode and allows Spark to manage its own cluster on a local machine. We will mainly use the standalone cluster manager for resource allocation in these labs. 
 
-A detailed description of the standalone mode is [avaiable here](https://spark.apache.org/docs/latest/spark-standalone.html)
 
 In Spark computational model, communication routinely occurs between a **driver** and **executors**. The driver has Spark jobs that it needs to run and these jobs are split into tasks that are submitted to the workers for completion. The results from these tasks are delivered back to the driver. 
+
+This image, taken from the [Spark documentation](https://spark.apache.org/docs/latest/spark-standalone.html) demonstrates this process well.
 
 ![](cluster.png)
 
@@ -34,11 +35,11 @@ For our labs, this distributed arrangement will be simulated on a single machine
 
 In order to use Spark and its API we will need to use a **SparkContext**. SparkContext is the entry point to any spark functionality. When we run any Spark application, a driver program starts, which has the main function and your SparkContext gets initiated here. The driver program then runs the operations inside the executors on worker nodes as shown above.
 
-SparkContext uses Py4J to launch a JVM and creates a JavaSparkContext. By default, PySpark has SparkContext available as ‘sc’, so creating a new SparkContext won't work
+SparkContext uses Py4J to launch a JVM and creates a JavaSparkContext. By default, PySpark has SparkContext available as ‘sc’, so creating a new SparkContext won't work.
 
-*Py4j provides a bridge between python and Java. [Click here](https://www.py4j.org/) to see more details on this.* 
+*Py4j provides a bridge between python and Java. [Click here](https://www.py4j.org/) to see more details on this. Here is a visual representation of how SparkContext functions found in the [Apache documentation](https://cwiki.apache.org/confluence/display/SPARK/PySpark+Internals)* 
 
-![](sc2.jpg)
+![](spark_context.png)
 
 Spark applications driver program launches various parallel operations on executor Java Virtual Machines (JVMs) running either in a cluster or locally on the same machine as shown above. When running locally, "PySparkShell" is the driver program. In all cases, this driver program contains the main loop for the program and creates distributed datasets on the cluster, then applies operations (transformations & actions) to those datasets.
 
@@ -48,9 +49,7 @@ The key takeaways for SparkContext are listed below:
 - SparkContext sets up internal services and establishes a connection to a Spark execution environment. 
 - The driver is the program that creates the SparkContext, connecting to a given Spark Master. 
 
-After creation, SparkContext asks the master for some cores to use to do work. The master sets these cores aside and they don't get used for other applications. This setup is described in the figure below
-
-![](executors.png)
+After creation, SparkContext asks the master for some cores to use to do work. The master sets these cores aside and they don't get used for other applications.
 
 Driver programs access Spark through the `SparkContext` object, which represents a connection to a computing cluster. A SparkContext object (usually shown as `sc`) is the main entry point for Spark functionality and can be used to create `Resilient Distributed Datasets` (RDDs) on a cluster as we will see in our next lab.
 
