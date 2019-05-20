@@ -33,15 +33,15 @@ For our labs, this distributed arrangement will be simulated on a single machine
 
 ## `SparkContext()`
 
-In order to use Spark and its API we will need to use a **SparkContext**. SparkContext is the entry point to any spark functionality. When we run any Spark application, a driver program starts, which has the main function and your SparkContext gets initiated here. The driver program then runs the operations inside the executors on worker nodes as shown above.
+In order to use Spark and its API we will need to use a **SparkContext**. SparkContext is how we are able to control what is happening in the Spark program from python. When we run any Spark application, a driver program starts, which has the main function and your SparkContext gets initiated here. The driver program then runs the operations inside the executors on worker nodes as shown above.
 
-SparkContext uses Py4J to launch a JVM and creates a JavaSparkContext. By default, PySpark has SparkContext available as ‘sc’, so creating a new SparkContext won't work.
+SparkContext uses Py4J to create a bridge between python and java, the language spark is built with. Even though all the code we'll be executing is in python, java is the code being executed underneath the hood in a JavaSparkConext. You'll see in error messages that they will frequently contain errors related specifically to Java. 
 
 *Py4j provides a bridge between python and Java. [Click here](https://www.py4j.org/) to see more details on this. Here is a visual representation of how SparkContext functions found in the [Apache documentation](https://cwiki.apache.org/confluence/display/SPARK/PySpark+Internals)* 
 
 ![](spark_context.png)
 
-Spark applications driver program launches various parallel operations on executor Java Virtual Machines (JVMs) running either in a cluster or locally on the same machine as shown above. When running locally, "PySparkShell" is the driver program. In all cases, this driver program contains the main loop for the program and creates distributed datasets on the cluster, then applies operations (transformations & actions) to those datasets.
+Spark applications driver program launches parallel operations on executor Java Virtual Machines (JVMs). This can occur either locally on a single machine using multiple cores to create parallel processing or across a cluster of computers that are controlled by a master computer. When running locally, "PySparkShell" is the driver program. The driver program contains the key instructions for the program and it determines how to best distribute datasets across the cluster and apply operations to those datasets.
 
 The key takeaways for SparkContext are listed below:
 
@@ -49,11 +49,11 @@ The key takeaways for SparkContext are listed below:
 - SparkContext sets up internal services and establishes a connection to a Spark execution environment. 
 - The driver is the program that creates the SparkContext, connecting to a given Spark Master. 
 
-After creation, SparkContext asks the master for some cores to use to do work. The master sets these cores aside and they don't get used for other applications.
+After creation, SparkContext asks the master for some cores to use to do work. The master sets these cores aside and they are used to complete whatever operation they are assigned to do.
 
-Driver programs access Spark through the `SparkContext` object, which represents a connection to a computing cluster. A SparkContext object (usually shown as `sc`) is the main entry point for Spark functionality and can be used to create `Resilient Distributed Datasets` (RDDs) on a cluster as we will see in our next lab.
+As stated before, a SparkContext object (usually shown as `sc`) is the main entry point for Spark functionality and can be used to create `Resilient Distributed Datasets` (RDDs) on a cluster as we will see in our next lab.
 
-Lets start a spark application by importing pyspark, creating a spark context as `sc` and try printing out type of `sc`.
+Lets start a spark application by importing pyspark, creating a spark context as `sc` and try printing out type of `sc`. For this SparkContext, we are going to assign the `master` parameter to 'local[ * ]' to indicate that we are running this SparkContext to be parallelized on our local machine.
 
 
 
@@ -77,6 +77,43 @@ type(sc)
     pyspark.context.SparkContext
 
 
+
+
+```python
+# Create second spark context for double the computing power!
+sc1 = pyspark.SparkContext('local[*]')
+```
+
+
+    ---------------------------------------------------------------------------
+
+    ValueError                                Traceback (most recent call last)
+
+    <ipython-input-8-6a3bdb55f42e> in <module>()
+          1 # Create second spark context for double the computing power!
+    ----> 2 sc1 = pyspark.SparkContext('local[*]')
+    
+
+    ~/anaconda3/lib/python3.6/site-packages/pyspark/context.py in __init__(self, master, appName, sparkHome, pyFiles, environment, batchSize, serializer, conf, gateway, jsc, profiler_cls)
+        113         """
+        114         self._callsite = first_spark_call() or CallSite(None, None, None)
+    --> 115         SparkContext._ensure_initialized(self, gateway=gateway, conf=conf)
+        116         try:
+        117             self._do_init(master, appName, sparkHome, pyFiles, environment, batchSize, serializer,
+
+
+    ~/anaconda3/lib/python3.6/site-packages/pyspark/context.py in _ensure_initialized(cls, instance, gateway, conf)
+        306                         " created by %s at %s:%s "
+        307                         % (currentAppName, currentMaster,
+    --> 308                             callsite.function, callsite.file, callsite.linenum))
+        309                 else:
+        310                     SparkContext._active_spark_context = instance
+
+
+    ValueError: Cannot run multiple SparkContexts at once; existing SparkContext(app=pyspark-shell, master=local[*]) created by __init__ at <ipython-input-1-ced9ce282d4f>:3 
+
+
+As you can see, only one SparkContext can be created within a python kernel at once!
 
 ### SparkContext attributes
 
@@ -129,7 +166,6 @@ dir(sc)
      '_conf',
      '_dictToJavaMap',
      '_do_init',
-     '_encryption_enabled',
      '_ensure_initialized',
      '_gateway',
      '_getJavaStorageLevel',
@@ -282,8 +318,6 @@ help(sc)
      |      A directory can be given if the recursive option is set to True.
      |      Currently directories are only supported for Hadoop-supported filesystems.
      |      
-     |      .. note:: A path can be added only once. Subsequent additions of the same path are ignored.
-     |      
      |      >>> from pyspark import SparkFiles
      |      >>> path = os.path.join(tempdir, "test.txt")
      |      >>> with open(path, "w") as testFile:
@@ -301,8 +335,6 @@ help(sc)
      |      SparkContext in the future.  The C{path} passed can be either a local
      |      file, a file in HDFS (or other Hadoop-supported filesystems), or an
      |      HTTP, HTTPS or FTP URI.
-     |      
-     |      .. note:: A path can be added only once. Subsequent additions of the same path are ignored.
      |  
      |  binaryFiles(self, path, minPartitions=None)
      |      .. note:: Experimental
@@ -543,10 +575,10 @@ help(sc)
      |      >>> def stop_job():
      |      ...     sleep(5)
      |      ...     sc.cancelJobGroup("job_to_cancel")
-     |      >>> suppress = lock.acquire()
-     |      >>> suppress = threading.Thread(target=start_job, args=(10,)).start()
-     |      >>> suppress = threading.Thread(target=stop_job).start()
-     |      >>> suppress = lock.acquire()
+     |      >>> supress = lock.acquire()
+     |      >>> supress = threading.Thread(target=start_job, args=(10,)).start()
+     |      >>> supress = threading.Thread(target=stop_job).start()
+     |      >>> supress = lock.acquire()
      |      >>> print(result)
      |      Cancelled
      |      
@@ -718,7 +750,7 @@ print ("Current version of Spark:", sc.version)
 # Current version of Spark: 2.3.1
 ```
 
-    Default number of cores being used: 2
+    Default number of cores being used: 4
     Current version of Spark: 2.3.1
 
 
@@ -749,16 +781,16 @@ We can access complete configuration settings (including all defaults) for the c
 
 
 
-    [('spark.driver.port', '36035'),
+    [('spark.driver.port', '52734'),
      ('spark.rdd.compress', 'True'),
-     ('spark.driver.host', '588b1d2e9e9b'),
      ('spark.serializer.objectStreamReset', '100'),
      ('spark.master', 'local[*]'),
      ('spark.executor.id', 'driver'),
      ('spark.submit.deployMode', 'client'),
+     ('spark.driver.host', '10.248.4.30'),
+     ('spark.app.id', 'local-1558359977714'),
      ('spark.ui.showConsoleProgress', 'true'),
-     ('spark.app.name', 'pyspark-shell'),
-     ('spark.app.id', 'local-1545010504175')]
+     ('spark.app.name', 'pyspark-shell')]
 
 
 
@@ -778,4 +810,4 @@ Once shut down, you can no longer access spark functionality before starting a n
 
 ## Summary
 
-In this short lab, we saw how SparkContext is used as an entry point to Spark applications. We learnt how to start a SparkContext, how to list and use some of the attributes and methods in SparkContext and how to shut it down. Students are encouraged to explore other attributes and methods offered by the sc object. Some of these, namely creating and transforming datasets as RDDs will be explored in later labs. 
+In this short lab, we saw how SparkContext is used as an entry point to Spark applications. We learned how to start a SparkContext, how to list and use some of the attributes and methods in SparkContext and how to shut it down. Students are encouraged to explore other attributes and methods offered by the sc object. Some of these, namely creating and transforming datasets as RDDs will be explored in later labs. 
