@@ -33,15 +33,15 @@ For our labs, this distributed arrangement will be simulated on a single machine
 
 ## `SparkContext()`
 
-In order to use Spark and its API we will need to use a **SparkContext**. SparkContext is the entry point to any spark functionality. When we run any Spark application, a driver program starts, which has the main function and your SparkContext gets initiated here. The driver program then runs the operations inside the executors on worker nodes as shown above.
+In order to use Spark and its API we will need to use a **SparkContext**. SparkContext is how we are able to control what is happening in the Spark program from python. When we run any Spark application, a driver program starts, which has the main function and your SparkContext gets initiated here. The driver program then runs the operations inside the executors on worker nodes as shown above.
 
-SparkContext uses Py4J to launch a JVM and creates a JavaSparkContext. By default, PySpark has SparkContext available as ‘sc’, so creating a new SparkContext won't work.
+SparkContext uses Py4J to create a bridge between python and java, the language spark is built with. Even though all the code we'll be executing is in python, java is the code being executed underneath the hood in a JavaSparkConext. You'll see in error messages that they will frequently contain errors related specifically to Java. 
 
 *Py4j provides a bridge between python and Java. [Click here](https://www.py4j.org/) to see more details on this. Here is a visual representation of how SparkContext functions found in the [Apache documentation](https://cwiki.apache.org/confluence/display/SPARK/PySpark+Internals)* 
 
-![](spark_context.png)
+![](./spark_context.png)
 
-Spark applications driver program launches various parallel operations on executor Java Virtual Machines (JVMs) running either in a cluster or locally on the same machine as shown above. When running locally, "PySparkShell" is the driver program. In all cases, this driver program contains the main loop for the program and creates distributed datasets on the cluster, then applies operations (transformations & actions) to those datasets.
+Spark applications driver program launches parallel operations on executor Java Virtual Machines (JVMs). This can occur either locally on a single machine using multiple cores to create parallel processing or across a cluster of computers that are controlled by a master computer. When running locally, "PySparkShell" is the driver program. The driver program contains the key instructions for the program and it determines how to best distribute datasets across the cluster and apply operations to those datasets.
 
 The key takeaways for SparkContext are listed below:
 
@@ -49,11 +49,11 @@ The key takeaways for SparkContext are listed below:
 - SparkContext sets up internal services and establishes a connection to a Spark execution environment. 
 - The driver is the program that creates the SparkContext, connecting to a given Spark Master. 
 
-After creation, SparkContext asks the master for some cores to use to do work. The master sets these cores aside and they don't get used for other applications.
+After creation, SparkContext asks the master for some cores to use to do work. The master sets these cores aside and they are used to complete whatever operation they are assigned to do.
 
-Driver programs access Spark through the `SparkContext` object, which represents a connection to a computing cluster. A SparkContext object (usually shown as `sc`) is the main entry point for Spark functionality and can be used to create `Resilient Distributed Datasets` (RDDs) on a cluster as we will see in our next lab.
+As stated before, a SparkContext object (usually shown as `sc`) is the main entry point for Spark functionality and can be used to create `Resilient Distributed Datasets` (RDDs) on a cluster as we will see in our next lab.
 
-Lets start a spark application by importing pyspark, creating a spark context as `sc` and try printing out type of `sc`.
+Lets start a spark application by importing pyspark, creating a spark context as `sc` and try printing out type of `sc`. For this SparkContext, we are going to assign the `master` parameter to 'local[ * ]' to indicate that we are running this SparkContext to be parallelized on our local machine.
 
 
 
@@ -77,6 +77,14 @@ type(sc)
     pyspark.context.SparkContext
 
 
+
+
+```python
+# Create second spark context
+sc1 = pyspark.SparkContext('local[*]')
+```
+
+As you can see, only one SparkContext can be created within a python kernel at once!
 
 ### SparkContext attributes
 
@@ -104,8 +112,7 @@ Alternatively, you can use Python's `help()` function to get an easier to read l
 
 You should also have a look at [Spark's SparkContext Documentation Page](https://spark.apache.org/docs/0.6.0/api/core/spark/SparkContext.html) to explore these in further detail.
 
-Let's try to check a few spark context attributes including `SparkContext.version` and `SparkContext.defaultParalellism` to check the current version of Apache Spark and number of cores being used for parallel processing. 
-
+Let's try to check a few spark context attributes including `SparkContext.version` and `SparkContext.defaultParalellism` to check the current version of Apache Spark and number of cores being used for parallel processing.
 
 
 ```python
@@ -180,4 +187,4 @@ Once shut down, you can no longer access spark functionality before starting a n
 
 ## Summary
 
-In this short lab, we saw how SparkContext is used as an entry point to Spark applications. We learnt how to start a SparkContext, how to list and use some of the attributes and methods in SparkContext and how to shut it down. Students are encouraged to explore other attributes and methods offered by the sc object. Some of these, namely creating and transforming datasets as RDDs will be explored in later labs. 
+In this short lab, we saw how SparkContext is used as an entry point to Spark applications. We learned how to start a SparkContext, how to list and use some of the attributes and methods in SparkContext and how to shut it down. Students are encouraged to explore other attributes and methods offered by the sc object. Some of these, namely creating and transforming datasets as RDDs will be explored in later labs. 
