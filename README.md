@@ -22,7 +22,7 @@ In Spark computational model, communication routinely occurs between a **driver*
 
 This image, taken from the [Spark documentation](https://spark.apache.org/docs/latest/spark-standalone.html) demonstrates this process well.
 
-![](cluster.png)
+![](./images/cluster.png)
 
 
 The spark driver declares the transformations and actions on data and submits such requests to the **master**. 
@@ -39,7 +39,7 @@ SparkContext uses Py4J to create a bridge between python and java, the language 
 
 *Py4j provides a bridge between python and Java. [Click here](https://www.py4j.org/) to see more details on this. Here is a visual representation of how SparkContext functions found in the [Apache documentation](https://cwiki.apache.org/confluence/display/SPARK/PySpark+Internals)* 
 
-![](./spark_context.png)
+![](./images/spark_context.png)
 
 Spark applications driver program launches parallel operations on executor Java Virtual Machines (JVMs). This can occur either locally on a single machine using multiple cores to create parallel processing or across a cluster of computers that are controlled by a master computer. When running locally, "PySparkShell" is the driver program. The driver program contains the key instructions for the program and it determines how to best distribute datasets across the cluster and apply operations to those datasets.
 
@@ -49,7 +49,11 @@ The key takeaways for SparkContext are listed below:
 - SparkContext sets up internal services and establishes a connection to a Spark execution environment. 
 - The driver is the program that creates the SparkContext, connecting to a given Spark Master. 
 
-After creation, SparkContext asks the master for some cores to use to do work. The master sets these cores aside and they are used to complete whatever operation they are assigned to do.
+After creation, SparkContext asks the master for some cores to use to do work. The master sets these cores aside and they are used to complete whatever operation they are assigned to do. You can visualize the setup in the figure below:
+
+<img src ="./images/spark_master_workers.png" width="280">
+
+This image depicts the worker nodes at work. Every worker has 4 cores to work with, and the master allocates tasks to run on certain cores within each worker node.
 
 As stated before, a SparkContext object (usually shown as `sc`) is the main entry point for Spark functionality and can be used to create `Resilient Distributed Datasets` (RDDs) on a cluster as we will see in our next lab.
 
