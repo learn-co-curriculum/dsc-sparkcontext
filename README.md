@@ -3,20 +3,20 @@
 
 ## Introduction
 
-The following series of PySpark lessons and labs in this section will provide you with an introduction to **Apache Spark**, the leading framework for big data processing in jupyter notebooks and PySpark, using a PySpark docker image in a standalone mode. These lessons require you explore the spark documentation and explore and practice methods and properties which are not directly covered in the labs. In this first lesson, we'll look at creating a spark session , called a Spark Context and explore its properties. 
+The following series of PySpark lessons and labs in this section will provide you with an introduction to **Apache Spark**, the leading framework for big data processing in jupyter notebooks and PySpark, using a PySpark docker image in a standalone mode. These lessons require you to explore the spark documentation and practice methods and properties which are not directly covered in the labs. In this first lesson, we'll look at creating a spark session, called a Spark Context and explore its properties. 
 
 ## Objectives
 
-You will be able to:
+In this lab you will: 
 
-* Describe Spark's parallalism with master and executor nodes
-* Understand SparkContext() for managing connections in parallel applications 
-* Provide an overview of major SparkContext() properties and methods
+- Describe Spark's parallelism with master and executor nodes 
+- List the major properties and methods of SparkContext 
+- Define a SparkContext and why it is important to a spark application 
+
 
 ## Cluster Resource Manager
 
-Spark comes bundled with a **Cluster Resource Manager** which divides and shares the physical resources of a cluster of machines between multiple Spark applications. Spark's **Standalone cluster manager** operates in the standalone mode and allows Spark to manage its own cluster on a local machine. We will mainly use the standalone cluster manager for resource allocation in these labs. 
-
+Spark comes bundled with a **Cluster Resource Manager** which divides and shares the physical resources of a cluster of machines between multiple Spark applications. Spark's **standalone cluster manager** operates in the standalone mode and allows Spark to manage its own cluster on a local machine. We will mainly use the standalone cluster manager for resource allocation in these labs. 
 
 In Spark computational model, communication routinely occurs between a **driver** and **executors**. The driver has Spark jobs that it needs to run and these jobs are split into tasks that are submitted to the workers for completion. The results from these tasks are delivered back to the driver. 
 
@@ -33,11 +33,11 @@ For our labs, this distributed arrangement will be simulated on a single machine
 
 ## `SparkContext()`
 
-In order to use Spark and its API we will need to use a **SparkContext**. SparkContext is how we are able to control what is happening in the Spark program from python. When we run any Spark application, a driver program starts, which has the main function and your SparkContext gets initiated here. The driver program then runs the operations inside the executors on worker nodes as shown above.
+In order to use Spark and its API we will need to use a **SparkContext**. SparkContext is how we are able to control what is happening in the Spark program from Python. When we run any Spark application, a driver program starts, which has the main function and your SparkContext gets initiated here. The driver program then runs the operations inside the executors on worker nodes as shown above.
 
-SparkContext uses Py4J to create a bridge between python and java, the language spark is built with. Even though all the code we'll be executing is in python, java is the code being executed underneath the hood in a JavaSparkConext. You'll see in error messages that they will frequently contain errors related specifically to Java. 
+SparkContext uses Py4J to create a bridge between Python and Java, the language spark is built with. Even though all the code we'll be executing is in Python, Java is the code being executed underneath the hood in a JavaSparkConext. You'll see in error messages that they will frequently contain errors related specifically to Java. 
 
-*Py4j provides a bridge between python and Java. [Click here](https://www.py4j.org/) to see more details on this. Here is a visual representation of how SparkContext functions found in the [Apache documentation](https://cwiki.apache.org/confluence/display/SPARK/PySpark+Internals)* 
+*Py4j provides a bridge between Python and Java. [Click here](https://www.py4j.org/) to see more details on this. Here is a visual representation of how SparkContext functions found in the [Apache documentation](https://cwiki.apache.org/confluence/display/SPARK/PySpark+Internals)* 
 
 ![](./images/spark_context.png)
 
@@ -45,9 +45,9 @@ Spark applications driver program launches parallel operations on executor Java 
 
 The key takeaways for SparkContext are listed below:
 
-- SparkContext is a client of Spark’s execution environment and it acts as the master of the Spark application.
-- SparkContext sets up internal services and establishes a connection to a Spark execution environment. 
-- The driver is the program that creates the SparkContext, connecting to a given Spark Master. 
+- SparkContext is a client of Spark’s execution environment and it acts as the master of the Spark application 
+- SparkContext sets up internal services and establishes a connection to a Spark execution environment  
+- The driver is the program that creates the SparkContext, connecting to a given Spark Master  
 
 After creation, SparkContext asks the master for some cores to use to do work. The master sets these cores aside and they are used to complete whatever operation they are assigned to do. You can visualize the setup in the figure below:
 
@@ -55,10 +55,9 @@ After creation, SparkContext asks the master for some cores to use to do work. T
 
 This image depicts the worker nodes at work. Every worker has 4 cores to work with, and the master allocates tasks to run on certain cores within each worker node.
 
-As stated before, a SparkContext object (usually shown as `sc`) is the main entry point for Spark functionality and can be used to create `Resilient Distributed Datasets` (RDDs) on a cluster as we will see in our next lab.
+As stated before, a SparkContext object (usually shown as `sc`) is the main entry point for Spark functionality and can be used to create _Resilient Distributed Datasets_ (RDDs) on a cluster as we will see in our next lab.
 
-Lets start a spark application by importing pyspark, creating a spark context as `sc` and try printing out type of `sc`. For this SparkContext, we are going to assign the `master` parameter to 'local[ * ]' to indicate that we are running this SparkContext to be parallelized on our local machine.
-
+Lets start a Spark application by importing PySpark, creating a spark context as `sc` and try printing out type of `sc`. For this SparkContext, we are going to assign the `master` parameter to 'local[ * ]' to indicate that we are running this SparkContext to be parallelized on our local machine.
 
 
 ```python
@@ -88,7 +87,7 @@ type(sc)
 sc1 = pyspark.SparkContext('local[*]')
 ```
 
-As you can see, only one SparkContext can be created within a python kernel at once!
+As you can see, only one SparkContext can be created within a Python kernel at once!
 
 ### SparkContext attributes
 
@@ -103,7 +102,7 @@ We can use Python's `dir()` function to get a list of all the attributes (includ
 
 ```
 
-Alternatively, you can use Python's `help()` function to get an easier to read list of all the attributes, including examples, that the sc object has.
+Alternatively, you can use Python's `help()` function to get an easier to read list of all the attributes, including examples, that the `sc` object has.
 
 
 ```python
@@ -158,7 +157,7 @@ We can access complete configuration settings (including all defaults) for the c
 
 
 ```python
- # Get all configuration settings
+# Get all configuration settings
 
 # Code here 
 
@@ -174,11 +173,11 @@ We can access complete configuration settings (including all defaults) for the c
 #  ('spark.app.id', 'local-1545010504175')]
 ```
 
-A Spark Context can be shut down using `SparkContext.stop()` method. Let's use this method to shut down the current spark context. 
+A SparkContext can be shut down using `SparkContext.stop()` method. Let's use this method to shut down the current spark context. 
 
 
 ```python
-#Shut down SparkContext
+# Shut down SparkContext
 
 # Code here
 ```
@@ -191,4 +190,4 @@ Once shut down, you can no longer access spark functionality before starting a n
 
 ## Summary
 
-In this short lab, we saw how SparkContext is used as an entry point to Spark applications. We learned how to start a SparkContext, how to list and use some of the attributes and methods in SparkContext and how to shut it down. Students are encouraged to explore other attributes and methods offered by the sc object. Some of these, namely creating and transforming datasets as RDDs will be explored in later labs. 
+In this short lab, we saw how SparkContext is used as an entry point to Spark applications. We learned how to start a SparkContext, how to list and use some of the attributes and methods in SparkContext and how to shut it down. Students are encouraged to explore other attributes and methods offered by the `sc` object. Some of these, namely creating and transforming datasets as RDDs will be explored in later labs. 
