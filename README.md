@@ -1,47 +1,43 @@
-
-# Understanding `SparkContext` - Lab
+# Understanding SparkContext - Codealong
 
 ## Introduction
 
-The following series of PySpark lessons and labs in this section will provide you with an introduction to **Apache Spark**, the leading framework for big data processing in jupyter notebooks and PySpark, using a PySpark docker image in a standalone mode. These lessons require you to explore the spark documentation and practice methods and properties which are not directly covered in the labs. In this first lesson, we'll look at creating a spark session, called a Spark Context and explore its properties. 
+SparkContext is the entry point for using the Unstructured API of Spark. In this lesson we'll go over how SparkContext works in PySpark, create a SparkContext called `sc`, and explore `sc`'s properties.
 
 ## Objectives
 
-In this lab you will: 
+You will be able to:
 
-- Describe Spark's parallelism with master and executor nodes 
-- List the major properties and methods of SparkContext 
-- Define a SparkContext and why it is important to a spark application 
+- Define a SparkContext and why it is important to a Spark application
+- Create a SparkContext with PySpark
+- List the major properties and methods of SparkContext
 
+## The Purpose of the SparkContext
 
-## Cluster Resource Manager
+### Spark Application Architecture
 
-Spark comes bundled with a **Cluster Resource Manager** which divides and shares the physical resources of a cluster of machines between multiple Spark applications. Spark's **standalone cluster manager** operates in the standalone mode and allows Spark to manage its own cluster on a local machine. We will mainly use the standalone cluster manager for resource allocation in these labs. 
+Recall this figure from the [Cluster Mode Overview](https://spark.apache.org/docs/latest/cluster-overview.html):
 
-In Spark computational model, communication routinely occurs between a **driver** and **executors**. The driver has Spark jobs that it needs to run and these jobs are split into tasks that are submitted to the workers for completion. The results from these tasks are delivered back to the driver. 
+![Cluster Manager Diagram](https://spark.apache.org/docs/latest/img/cluster-overview.png)
 
-This image, taken from the [Spark documentation](https://spark.apache.org/docs/latest/spark-standalone.html) demonstrates this process well.
+When you are writing Spark code, your code is the "Driver Program" pictured here. Your code needs to instantiate a SparkContext if we want to be able to use the Spark Unstructured API.
 
-![](./images/cluster.png)
+### PySpark Stack
 
+Since we are not writing Spark code in Scala, but instead are writing PySpark code in Python, there is some additional architecture to be aware of.
 
-The spark driver declares the transformations and actions on data and submits such requests to the **master**. 
+Specifically, all Spark code needs to be able to run on the JVM (Java Virtual Machine), because **PySpark is built on top of Spark's Java API**. PySpark uses the [Py4J](https://www.py4j.org/) library under the hood to accomplish this. 
 
-> The machine on which the Spark cluster manager runs is called the **Master Node**. 
+This is relevant to your development process because:
 
-For our labs, this distributed arrangement will be simulated on a single machine allowing you to initialize master and worker nodes. 
+- Sometimes you will see error messages or warnings related to Java code.
+- Many of the function and variable names follow Java naming conventions rather than Python. In particular, you will see many examples of `camelCase` names in places where you would expect `snake_case` Python names.
 
-## `SparkContext()`
+The architecture including Py4J is something like this (from the [PySpark Internals wiki](https://cwiki.apache.org/confluence/display/SPARK/PySpark+Internals)):
 
-In order to use Spark and its API we will need to use a **SparkContext**. SparkContext is how we are able to control what is happening in the Spark program from Python. When we run any Spark application, a driver program starts, which has the main function and your SparkContext gets initiated here. The driver program then runs the operations inside the executors on worker nodes as shown above.
+![Data Flow architecture diagram with Py4J](https://i.imgur.com/YlI8AqEl.png)
 
-SparkContext uses Py4J to create a bridge between Python and Java, the language spark is built with. Even though all the code we'll be executing is in Python, Java is the code being executed underneath the hood in a JavaSparkConext. You'll see in error messages that they will frequently contain errors related specifically to Java. 
-
-*Py4j provides a bridge between Python and Java. [Click here](https://www.py4j.org/) to see more details on this. Here is a visual representation of how SparkContext functions found in the [Apache documentation](https://cwiki.apache.org/confluence/display/SPARK/PySpark+Internals)* 
-
-![](./images/spark_context.png)
-
-Spark applications driver program launches parallel operations on executor Java Virtual Machines (JVMs). This can occur either locally on a single machine using multiple cores to create parallel processing or across a cluster of computers that are controlled by a master computer. When running locally, "PySparkShell" is the driver program. The driver program contains the key instructions for the program and it determines how to best distribute datasets across the cluster and apply operations to those datasets.
+The driver program launches parallel operations on executor Java Virtual Machines (JVMs). This can occur either locally on a single machine using multiple cores to create parallel processing or across a cluster of computers that are controlled by a master computer. When running locally, "PySparkShell" is the application name. The driver program contains the key instructions for the program and it determines how to best distribute datasets across the cluster and apply operations to those datasets.
 
 The key takeaways for SparkContext are listed below:
 
@@ -51,760 +47,958 @@ The key takeaways for SparkContext are listed below:
 
 After creation, SparkContext asks the master for some cores to use to do work. The master sets these cores aside and they are used to complete whatever operation they are assigned to do. You can visualize the setup in the figure below:
 
-<img src ="./images/spark_master_workers.png" width="280">
+<img src ="https://github.com/learn-co-curriculum/dsc-sparkcontext/raw/master/images/spark_master_workers.png" width="280">
 
 This image depicts the worker nodes at work. Every worker has 4 cores to work with, and the master allocates tasks to run on certain cores within each worker node.
 
-As stated before, a SparkContext object (usually shown as `sc`) is the main entry point for Spark functionality and can be used to create _Resilient Distributed Datasets_ (RDDs) on a cluster as we will see in our next lab.
+## Creating a Local SparkContext
 
-Lets start a Spark application by importing PySpark, creating a spark context as `sc` and try printing out type of `sc`. For this SparkContext, we are going to assign the `master` parameter to 'local[ * ]' to indicate that we are running this SparkContext to be parallelized on our local machine.
+While the SparkContext conceptual framework is fairly complex, creating a SparkContext with PySpark is fairly simple. All we need to do is import the relevant class and instantiate it.
 
+### Importing the SparkContext Class
+
+As we can see from the [documentation](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.SparkContext.html), there is an example import statement:
 
 ```python
-# Create a local spark context with pyspark
-import pyspark
-sc = pyspark.SparkContext('local[*]')
+# Import the SparkContext class from the pyspark.context submodule
+from pyspark.context import SparkContext
 ```
 
+Type this code in the cell below and execute the cell.
+
+### Instantiating `sc`
+
+#### Naming Convention
+
+The conventional name for the SparkContext object is `sc`. In fact, in some (Py)Spark environments, there will already be an object in memory called `sc` as soon as the environment is loaded. Therefore unless you have a very specific reason for changing the name, you are strongly encouraged to use the name `sc` to represent the SparkContext.
+
+#### Parameters
+
+In theory you could simply call `SparkContext()` to create your SparkContext, but in practice you should specify values for two parameters: `master` and `appName`.
+
+The `master` parameter is the cluster URL to connect to. If you were using a full-fledged Cluster Manager this URL might be something like `"mesos://host:5050"` but we are just running a local cluster. Therefore we'll specify a `master` value of `"local[*]"`. The `*` means that we are telling Spark to run on all available cores of our machine.
+
+The `appName` parameter is just a label for the application. It's similar to a Python variable name -- just there to help you understand what the code is doing. You can put any string value you like.
+
+#### Codealong
+
+In the cell below, instantiate a variable `sc` using the `SparkContext` class, a `master` of `"local[*]"`, and an `appName` of `"sc practice"`.
 
 ```python
-# Display the type of the Spark Context
+# Instantiate sc
+sc = SparkContext("local[*]", "sc practice")
+```
+
+You may see some Java warnings appear below this line of code (or other lines of code). In general you can safely ignore these warnings, although they may provide relevant information for debugging.
+
+#### One SparkContext at a Time
+
+Note that you can only have one SparkContext at a time. If you try to make another one without stopping the first one, you will get an error:
+
+## Properties and Methods of SparkContext
+
+Now we have a SparkContext object! Let's investigate it like any other Python object.
+
+### Type
+
+What is the type of our SparkContext?
+
+---
+
+<details>
+    <summary>
+        <b><u>Click to Reveal Code</u></b>
+    </summary>
+
+```python
+# Type of sc
 type(sc)
-
-# pyspark.context.SparkContext
 ```
-
-
-
-
-    pyspark.context.SparkContext
-
-
-
-
-```python
-# Create second spark context for double the computing power!
-sc1 = pyspark.SparkContext('local[*]')
-```
-
-
-    ---------------------------------------------------------------------------
-
-    ValueError                                Traceback (most recent call last)
-
-    <ipython-input-8-6a3bdb55f42e> in <module>()
-          1 # Create second spark context for double the computing power!
-    ----> 2 sc1 = pyspark.SparkContext('local[*]')
     
+</details>
 
-    ~/anaconda3/lib/python3.6/site-packages/pyspark/context.py in __init__(self, master, appName, sparkHome, pyFiles, environment, batchSize, serializer, conf, gateway, jsc, profiler_cls)
-        113         """
-        114         self._callsite = first_spark_call() or CallSite(None, None, None)
-    --> 115         SparkContext._ensure_initialized(self, gateway=gateway, conf=conf)
-        116         try:
-        117             self._do_init(master, appName, sparkHome, pyFiles, environment, batchSize, serializer,
+<details>
+    <summary>
+        <b><u>Click to Reveal Expected Output</u></b>
+    </summary>
 
+```
+pyspark.context.SparkContext
+```
+</details>
 
-    ~/anaconda3/lib/python3.6/site-packages/pyspark/context.py in _ensure_initialized(cls, instance, gateway, conf)
-        306                         " created by %s at %s:%s "
-        307                         % (currentAppName, currentMaster,
-    --> 308                             callsite.function, callsite.file, callsite.linenum))
-        309                 else:
-        310                     SparkContext._active_spark_context = instance
+### All Attributes
 
+Use Python's `dir` built-in function ([documentation here](https://docs.python.org/3/library/functions.html#dir)) to get a list of all attributes (including methods) accessible through the `sc` object.
 
-    ValueError: Cannot run multiple SparkContexts at once; existing SparkContext(app=pyspark-shell, master=local[*]) created by __init__ at <ipython-input-1-ced9ce282d4f>:3 
+---
 
-
-As you can see, only one SparkContext can be created within a Python kernel at once!
-
-### SparkContext attributes
-
-We can use Python's `dir()` function to get a list of all the attributes (including methods) accessible through the `sc` object.
-
+<details>
+    <summary>
+        <b><u>Click to Reveal Code</u></b>
+    </summary>
 
 ```python
-# Use Python's dir(obj) to get a list of all attributes of SparkContext
+# Get a list of all attributes
 dir(sc)
 ```
+    
+</details>
 
+<details>
+    <summary>
+        <b><u>Click to Reveal Expected Output</u></b>
+    </summary>
 
+```
+['PACKAGE_EXTENSIONS',
+ '__class__',
+ '__delattr__',
+ '__dict__',
+ '__dir__',
+ '__doc__',
+ '__enter__',
+ '__eq__',
+ '__exit__',
+ '__format__',
+ '__ge__',
+ '__getattribute__',
+ '__getnewargs__',
+ '__gt__',
+ '__hash__',
+ '__init__',
+ '__init_subclass__',
+ '__le__',
+ '__lt__',
+ '__module__',
+ '__ne__',
+ '__new__',
+ '__reduce__',
+ '__reduce_ex__',
+ '__repr__',
+ '__setattr__',
+ '__sizeof__',
+ '__str__',
+ '__subclasshook__',
+ '__weakref__',
+ '_accumulatorServer',
+ '_active_spark_context',
+ '_assert_on_driver',
+ '_batchSize',
+ '_callsite',
+ '_checkpointFile',
+ '_conf',
+ '_dictToJavaMap',
+ '_do_init',
+ '_encryption_enabled',
+ '_ensure_initialized',
+ '_gateway',
+ '_getJavaStorageLevel',
+ '_initialize_context',
+ '_javaAccumulator',
+ '_jsc',
+ '_jvm',
+ '_lock',
+ '_next_accum_id',
+ '_pickled_broadcast_vars',
+ '_python_includes',
+ '_repr_html_',
+ '_serialize_to_jvm',
+ '_temp_dir',
+ '_unbatched_serializer',
+ 'accumulator',
+ 'addFile',
+ 'addPyFile',
+ 'appName',
+ 'applicationId',
+ 'binaryFiles',
+ 'binaryRecords',
+ 'broadcast',
+ 'cancelAllJobs',
+ 'cancelJobGroup',
+ 'defaultMinPartitions',
+ 'defaultParallelism',
+ 'dump_profiles',
+ 'emptyRDD',
+ 'environment',
+ 'getCheckpointDir',
+ 'getConf',
+ 'getLocalProperty',
+ 'getOrCreate',
+ 'hadoopFile',
+ 'hadoopRDD',
+ 'master',
+ 'newAPIHadoopFile',
+ 'newAPIHadoopRDD',
+ 'parallelize',
+ 'pickleFile',
+ 'profiler_collector',
+ 'pythonExec',
+ 'pythonVer',
+ 'range',
+ 'resources',
+ 'runJob',
+ 'sequenceFile',
+ 'serializer',
+ 'setCheckpointDir',
+ 'setJobDescription',
+ 'setJobGroup',
+ 'setLocalProperty',
+ 'setLogLevel',
+ 'setSystemProperty',
+ 'show_profiles',
+ 'sparkHome',
+ 'sparkUser',
+ 'startTime',
+ 'statusTracker',
+ 'stop',
+ 'textFile',
+ 'uiWebUrl',
+ 'union',
+ 'version',
+ 'wholeTextFiles']
+```
+    
+</details>
 
+### Python Help
 
-    ['PACKAGE_EXTENSIONS',
-     '__class__',
-     '__delattr__',
-     '__dict__',
-     '__dir__',
-     '__doc__',
-     '__enter__',
-     '__eq__',
-     '__exit__',
-     '__format__',
-     '__ge__',
-     '__getattribute__',
-     '__getnewargs__',
-     '__gt__',
-     '__hash__',
-     '__init__',
-     '__init_subclass__',
-     '__le__',
-     '__lt__',
-     '__module__',
-     '__ne__',
-     '__new__',
-     '__reduce__',
-     '__reduce_ex__',
-     '__repr__',
-     '__setattr__',
-     '__sizeof__',
-     '__str__',
-     '__subclasshook__',
-     '__weakref__',
-     '_accumulatorServer',
-     '_active_spark_context',
-     '_batchSize',
-     '_callsite',
-     '_checkpointFile',
-     '_conf',
-     '_dictToJavaMap',
-     '_do_init',
-     '_ensure_initialized',
-     '_gateway',
-     '_getJavaStorageLevel',
-     '_initialize_context',
-     '_javaAccumulator',
-     '_jsc',
-     '_jvm',
-     '_lock',
-     '_next_accum_id',
-     '_pickled_broadcast_vars',
-     '_python_includes',
-     '_repr_html_',
-     '_serialize_to_jvm',
-     '_temp_dir',
-     '_unbatched_serializer',
-     'accumulator',
-     'addFile',
-     'addPyFile',
-     'appName',
-     'applicationId',
-     'binaryFiles',
-     'binaryRecords',
-     'broadcast',
-     'cancelAllJobs',
-     'cancelJobGroup',
-     'defaultMinPartitions',
-     'defaultParallelism',
-     'dump_profiles',
-     'emptyRDD',
-     'environment',
-     'getConf',
-     'getLocalProperty',
-     'getOrCreate',
-     'hadoopFile',
-     'hadoopRDD',
-     'master',
-     'newAPIHadoopFile',
-     'newAPIHadoopRDD',
-     'parallelize',
-     'pickleFile',
-     'profiler_collector',
-     'pythonExec',
-     'pythonVer',
-     'range',
-     'runJob',
-     'sequenceFile',
-     'serializer',
-     'setCheckpointDir',
-     'setJobDescription',
-     'setJobGroup',
-     'setLocalProperty',
-     'setLogLevel',
-     'setSystemProperty',
-     'show_profiles',
-     'sparkHome',
-     'sparkUser',
-     'startTime',
-     'statusTracker',
-     'stop',
-     'textFile',
-     'uiWebUrl',
-     'union',
-     'version',
-     'wholeTextFiles']
+We have a list of attributes, but no explanation of how to use them. Use Python's `help` function ([documentation here](https://docs.python.org/3/library/functions.html#help)) to get an easier-to-read list of all the attributes, including examples, that the `sc` object has.
 
+---
 
-
-Alternatively, you can use Python's `help()` function to get an easier to read list of all the attributes, including examples, that the `sc` object has.
-
+<details>
+    <summary>
+        <b><u>Click to Reveal Code</u></b>
+    </summary>
 
 ```python
-# Use Python's help ( help(object) ) function to get information on attributes and methods for sc object. 
+# Use Python's help function to get information on attributes and methods for sc object
 help(sc)
-
 ```
-
-    Help on SparkContext in module pyspark.context object:
     
-    class SparkContext(builtins.object)
-     |  Main entry point for Spark functionality. A SparkContext represents the
-     |  connection to a Spark cluster, and can be used to create L{RDD} and
-     |  broadcast variables on that cluster.
-     |  
-     |  Methods defined here:
-     |  
-     |  __enter__(self)
-     |      Enable 'with SparkContext(...) as sc: app(sc)' syntax.
-     |  
-     |  __exit__(self, type, value, trace)
-     |      Enable 'with SparkContext(...) as sc: app' syntax.
-     |      
-     |      Specifically stop the context on exit of the with block.
-     |  
-     |  __getnewargs__(self)
-     |  
-     |  __init__(self, master=None, appName=None, sparkHome=None, pyFiles=None, environment=None, batchSize=0, serializer=PickleSerializer(), conf=None, gateway=None, jsc=None, profiler_cls=<class 'pyspark.profiler.BasicProfiler'>)
-     |      Create a new SparkContext. At least the master and app name should be set,
-     |      either through the named parameters here or through C{conf}.
-     |      
-     |      :param master: Cluster URL to connect to
-     |             (e.g. mesos://host:port, spark://host:port, local[4]).
-     |      :param appName: A name for your job, to display on the cluster web UI.
-     |      :param sparkHome: Location where Spark is installed on cluster nodes.
-     |      :param pyFiles: Collection of .zip or .py files to send to the cluster
-     |             and add to PYTHONPATH.  These can be paths on the local file
-     |             system or HDFS, HTTP, HTTPS, or FTP URLs.
-     |      :param environment: A dictionary of environment variables to set on
-     |             worker nodes.
-     |      :param batchSize: The number of Python objects represented as a single
-     |             Java object. Set 1 to disable batching, 0 to automatically choose
-     |             the batch size based on object sizes, or -1 to use an unlimited
-     |             batch size
-     |      :param serializer: The serializer for RDDs.
-     |      :param conf: A L{SparkConf} object setting Spark properties.
-     |      :param gateway: Use an existing gateway and JVM, otherwise a new JVM
-     |             will be instantiated.
-     |      :param jsc: The JavaSparkContext instance (optional).
-     |      :param profiler_cls: A class of custom Profiler used to do profiling
-     |             (default is pyspark.profiler.BasicProfiler).
-     |      
-     |      
-     |      >>> from pyspark.context import SparkContext
-     |      >>> sc = SparkContext('local', 'test')
-     |      
-     |      >>> sc2 = SparkContext('local', 'test2') # doctest: +IGNORE_EXCEPTION_DETAIL
-     |      Traceback (most recent call last):
-     |          ...
-     |      ValueError:...
-     |  
-     |  __repr__(self)
-     |      Return repr(self).
-     |  
-     |  accumulator(self, value, accum_param=None)
-     |      Create an L{Accumulator} with the given initial value, using a given
-     |      L{AccumulatorParam} helper object to define how to add values of the
-     |      data type if provided. Default AccumulatorParams are used for integers
-     |      and floating-point numbers if you do not provide one. For other types,
-     |      a custom AccumulatorParam can be used.
-     |  
-     |  addFile(self, path, recursive=False)
-     |      Add a file to be downloaded with this Spark job on every node.
-     |      The C{path} passed can be either a local file, a file in HDFS
-     |      (or other Hadoop-supported filesystems), or an HTTP, HTTPS or
-     |      FTP URI.
-     |      
-     |      To access the file in Spark jobs, use
-     |      L{SparkFiles.get(fileName)<pyspark.files.SparkFiles.get>} with the
-     |      filename to find its download location.
-     |      
-     |      A directory can be given if the recursive option is set to True.
-     |      Currently directories are only supported for Hadoop-supported filesystems.
-     |      
-     |      >>> from pyspark import SparkFiles
-     |      >>> path = os.path.join(tempdir, "test.txt")
-     |      >>> with open(path, "w") as testFile:
-     |      ...    _ = testFile.write("100")
-     |      >>> sc.addFile(path)
-     |      >>> def func(iterator):
-     |      ...    with open(SparkFiles.get("test.txt")) as testFile:
-     |      ...        fileVal = int(testFile.readline())
-     |      ...        return [x * fileVal for x in iterator]
-     |      >>> sc.parallelize([1, 2, 3, 4]).mapPartitions(func).collect()
-     |      [100, 200, 300, 400]
-     |  
-     |  addPyFile(self, path)
-     |      Add a .py or .zip dependency for all tasks to be executed on this
-     |      SparkContext in the future.  The C{path} passed can be either a local
-     |      file, a file in HDFS (or other Hadoop-supported filesystems), or an
-     |      HTTP, HTTPS or FTP URI.
-     |  
-     |  binaryFiles(self, path, minPartitions=None)
-     |      .. note:: Experimental
-     |      
-     |      Read a directory of binary files from HDFS, a local file system
-     |      (available on all nodes), or any Hadoop-supported file system URI
-     |      as a byte array. Each file is read as a single record and returned
-     |      in a key-value pair, where the key is the path of each file, the
-     |      value is the content of each file.
-     |      
-     |      .. note:: Small files are preferred, large file is also allowable, but
-     |          may cause bad performance.
-     |  
-     |  binaryRecords(self, path, recordLength)
-     |      .. note:: Experimental
-     |      
-     |      Load data from a flat binary file, assuming each record is a set of numbers
-     |      with the specified numerical format (see ByteBuffer), and the number of
-     |      bytes per record is constant.
-     |      
-     |      :param path: Directory to the input data files
-     |      :param recordLength: The length at which to split the records
-     |  
-     |  broadcast(self, value)
-     |      Broadcast a read-only variable to the cluster, returning a
-     |      L{Broadcast<pyspark.broadcast.Broadcast>}
-     |      object for reading it in distributed functions. The variable will
-     |      be sent to each cluster only once.
-     |  
-     |  cancelAllJobs(self)
-     |      Cancel all jobs that have been scheduled or are running.
-     |  
-     |  cancelJobGroup(self, groupId)
-     |      Cancel active jobs for the specified group. See L{SparkContext.setJobGroup}
-     |      for more information.
-     |  
-     |  dump_profiles(self, path)
-     |      Dump the profile stats into directory `path`
-     |  
-     |  emptyRDD(self)
-     |      Create an RDD that has no partitions or elements.
-     |  
-     |  getConf(self)
-     |  
-     |  getLocalProperty(self, key)
-     |      Get a local property set in this thread, or null if it is missing. See
-     |      L{setLocalProperty}
-     |  
-     |  hadoopFile(self, path, inputFormatClass, keyClass, valueClass, keyConverter=None, valueConverter=None, conf=None, batchSize=0)
-     |      Read an 'old' Hadoop InputFormat with arbitrary key and value class from HDFS,
-     |      a local file system (available on all nodes), or any Hadoop-supported file system URI.
-     |      The mechanism is the same as for sc.sequenceFile.
-     |      
-     |      A Hadoop configuration can be passed in as a Python dict. This will be converted into a
-     |      Configuration in Java.
-     |      
-     |      :param path: path to Hadoop file
-     |      :param inputFormatClass: fully qualified classname of Hadoop InputFormat
-     |             (e.g. "org.apache.hadoop.mapred.TextInputFormat")
-     |      :param keyClass: fully qualified classname of key Writable class
-     |             (e.g. "org.apache.hadoop.io.Text")
-     |      :param valueClass: fully qualified classname of value Writable class
-     |             (e.g. "org.apache.hadoop.io.LongWritable")
-     |      :param keyConverter: (None by default)
-     |      :param valueConverter: (None by default)
-     |      :param conf: Hadoop configuration, passed in as a dict
-     |             (None by default)
-     |      :param batchSize: The number of Python objects represented as a single
-     |             Java object. (default 0, choose batchSize automatically)
-     |  
-     |  hadoopRDD(self, inputFormatClass, keyClass, valueClass, keyConverter=None, valueConverter=None, conf=None, batchSize=0)
-     |      Read an 'old' Hadoop InputFormat with arbitrary key and value class, from an arbitrary
-     |      Hadoop configuration, which is passed in as a Python dict.
-     |      This will be converted into a Configuration in Java.
-     |      The mechanism is the same as for sc.sequenceFile.
-     |      
-     |      :param inputFormatClass: fully qualified classname of Hadoop InputFormat
-     |             (e.g. "org.apache.hadoop.mapred.TextInputFormat")
-     |      :param keyClass: fully qualified classname of key Writable class
-     |             (e.g. "org.apache.hadoop.io.Text")
-     |      :param valueClass: fully qualified classname of value Writable class
-     |             (e.g. "org.apache.hadoop.io.LongWritable")
-     |      :param keyConverter: (None by default)
-     |      :param valueConverter: (None by default)
-     |      :param conf: Hadoop configuration, passed in as a dict
-     |             (None by default)
-     |      :param batchSize: The number of Python objects represented as a single
-     |             Java object. (default 0, choose batchSize automatically)
-     |  
-     |  newAPIHadoopFile(self, path, inputFormatClass, keyClass, valueClass, keyConverter=None, valueConverter=None, conf=None, batchSize=0)
-     |      Read a 'new API' Hadoop InputFormat with arbitrary key and value class from HDFS,
-     |      a local file system (available on all nodes), or any Hadoop-supported file system URI.
-     |      The mechanism is the same as for sc.sequenceFile.
-     |      
-     |      A Hadoop configuration can be passed in as a Python dict. This will be converted into a
-     |      Configuration in Java
-     |      
-     |      :param path: path to Hadoop file
-     |      :param inputFormatClass: fully qualified classname of Hadoop InputFormat
-     |             (e.g. "org.apache.hadoop.mapreduce.lib.input.TextInputFormat")
-     |      :param keyClass: fully qualified classname of key Writable class
-     |             (e.g. "org.apache.hadoop.io.Text")
-     |      :param valueClass: fully qualified classname of value Writable class
-     |             (e.g. "org.apache.hadoop.io.LongWritable")
-     |      :param keyConverter: (None by default)
-     |      :param valueConverter: (None by default)
-     |      :param conf: Hadoop configuration, passed in as a dict
-     |             (None by default)
-     |      :param batchSize: The number of Python objects represented as a single
-     |             Java object. (default 0, choose batchSize automatically)
-     |  
-     |  newAPIHadoopRDD(self, inputFormatClass, keyClass, valueClass, keyConverter=None, valueConverter=None, conf=None, batchSize=0)
-     |      Read a 'new API' Hadoop InputFormat with arbitrary key and value class, from an arbitrary
-     |      Hadoop configuration, which is passed in as a Python dict.
-     |      This will be converted into a Configuration in Java.
-     |      The mechanism is the same as for sc.sequenceFile.
-     |      
-     |      :param inputFormatClass: fully qualified classname of Hadoop InputFormat
-     |             (e.g. "org.apache.hadoop.mapreduce.lib.input.TextInputFormat")
-     |      :param keyClass: fully qualified classname of key Writable class
-     |             (e.g. "org.apache.hadoop.io.Text")
-     |      :param valueClass: fully qualified classname of value Writable class
-     |             (e.g. "org.apache.hadoop.io.LongWritable")
-     |      :param keyConverter: (None by default)
-     |      :param valueConverter: (None by default)
-     |      :param conf: Hadoop configuration, passed in as a dict
-     |             (None by default)
-     |      :param batchSize: The number of Python objects represented as a single
-     |             Java object. (default 0, choose batchSize automatically)
-     |  
-     |  parallelize(self, c, numSlices=None)
-     |      Distribute a local Python collection to form an RDD. Using xrange
-     |      is recommended if the input represents a range for performance.
-     |      
-     |      >>> sc.parallelize([0, 2, 3, 4, 6], 5).glom().collect()
-     |      [[0], [2], [3], [4], [6]]
-     |      >>> sc.parallelize(xrange(0, 6, 2), 5).glom().collect()
-     |      [[], [0], [], [2], [4]]
-     |  
-     |  pickleFile(self, name, minPartitions=None)
-     |      Load an RDD previously saved using L{RDD.saveAsPickleFile} method.
-     |      
-     |      >>> tmpFile = NamedTemporaryFile(delete=True)
-     |      >>> tmpFile.close()
-     |      >>> sc.parallelize(range(10)).saveAsPickleFile(tmpFile.name, 5)
-     |      >>> sorted(sc.pickleFile(tmpFile.name, 3).collect())
-     |      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-     |  
-     |  range(self, start, end=None, step=1, numSlices=None)
-     |      Create a new RDD of int containing elements from `start` to `end`
-     |      (exclusive), increased by `step` every element. Can be called the same
-     |      way as python's built-in range() function. If called with a single argument,
-     |      the argument is interpreted as `end`, and `start` is set to 0.
-     |      
-     |      :param start: the start value
-     |      :param end: the end value (exclusive)
-     |      :param step: the incremental step (default: 1)
-     |      :param numSlices: the number of partitions of the new RDD
-     |      :return: An RDD of int
-     |      
-     |      >>> sc.range(5).collect()
-     |      [0, 1, 2, 3, 4]
-     |      >>> sc.range(2, 4).collect()
-     |      [2, 3]
-     |      >>> sc.range(1, 7, 2).collect()
-     |      [1, 3, 5]
-     |  
-     |  runJob(self, rdd, partitionFunc, partitions=None, allowLocal=False)
-     |      Executes the given partitionFunc on the specified set of partitions,
-     |      returning the result as an array of elements.
-     |      
-     |      If 'partitions' is not specified, this will run over all partitions.
-     |      
-     |      >>> myRDD = sc.parallelize(range(6), 3)
-     |      >>> sc.runJob(myRDD, lambda part: [x * x for x in part])
-     |      [0, 1, 4, 9, 16, 25]
-     |      
-     |      >>> myRDD = sc.parallelize(range(6), 3)
-     |      >>> sc.runJob(myRDD, lambda part: [x * x for x in part], [0, 2], True)
-     |      [0, 1, 16, 25]
-     |  
-     |  sequenceFile(self, path, keyClass=None, valueClass=None, keyConverter=None, valueConverter=None, minSplits=None, batchSize=0)
-     |      Read a Hadoop SequenceFile with arbitrary key and value Writable class from HDFS,
-     |      a local file system (available on all nodes), or any Hadoop-supported file system URI.
-     |      The mechanism is as follows:
-     |      
-     |          1. A Java RDD is created from the SequenceFile or other InputFormat, and the key
-     |             and value Writable classes
-     |          2. Serialization is attempted via Pyrolite pickling
-     |          3. If this fails, the fallback is to call 'toString' on each key and value
-     |          4. C{PickleSerializer} is used to deserialize pickled objects on the Python side
-     |      
-     |      :param path: path to sequncefile
-     |      :param keyClass: fully qualified classname of key Writable class
-     |             (e.g. "org.apache.hadoop.io.Text")
-     |      :param valueClass: fully qualified classname of value Writable class
-     |             (e.g. "org.apache.hadoop.io.LongWritable")
-     |      :param keyConverter:
-     |      :param valueConverter:
-     |      :param minSplits: minimum splits in dataset
-     |             (default min(2, sc.defaultParallelism))
-     |      :param batchSize: The number of Python objects represented as a single
-     |             Java object. (default 0, choose batchSize automatically)
-     |  
-     |  setCheckpointDir(self, dirName)
-     |      Set the directory under which RDDs are going to be checkpointed. The
-     |      directory must be a HDFS path if running on a cluster.
-     |  
-     |  setJobDescription(self, value)
-     |      Set a human readable description of the current job.
-     |  
-     |  setJobGroup(self, groupId, description, interruptOnCancel=False)
-     |      Assigns a group ID to all the jobs started by this thread until the group ID is set to a
-     |      different value or cleared.
-     |      
-     |      Often, a unit of execution in an application consists of multiple Spark actions or jobs.
-     |      Application programmers can use this method to group all those jobs together and give a
-     |      group description. Once set, the Spark web UI will associate such jobs with this group.
-     |      
-     |      The application can use L{SparkContext.cancelJobGroup} to cancel all
-     |      running jobs in this group.
-     |      
-     |      >>> import threading
-     |      >>> from time import sleep
-     |      >>> result = "Not Set"
-     |      >>> lock = threading.Lock()
-     |      >>> def map_func(x):
-     |      ...     sleep(100)
-     |      ...     raise Exception("Task should have been cancelled")
-     |      >>> def start_job(x):
-     |      ...     global result
-     |      ...     try:
-     |      ...         sc.setJobGroup("job_to_cancel", "some description")
-     |      ...         result = sc.parallelize(range(x)).map(map_func).collect()
-     |      ...     except Exception as e:
-     |      ...         result = "Cancelled"
-     |      ...     lock.release()
-     |      >>> def stop_job():
-     |      ...     sleep(5)
-     |      ...     sc.cancelJobGroup("job_to_cancel")
-     |      >>> supress = lock.acquire()
-     |      >>> supress = threading.Thread(target=start_job, args=(10,)).start()
-     |      >>> supress = threading.Thread(target=stop_job).start()
-     |      >>> supress = lock.acquire()
-     |      >>> print(result)
-     |      Cancelled
-     |      
-     |      If interruptOnCancel is set to true for the job group, then job cancellation will result
-     |      in Thread.interrupt() being called on the job's executor threads. This is useful to help
-     |      ensure that the tasks are actually stopped in a timely manner, but is off by default due
-     |      to HDFS-1208, where HDFS may respond to Thread.interrupt() by marking nodes as dead.
-     |  
-     |  setLocalProperty(self, key, value)
-     |      Set a local property that affects jobs submitted from this thread, such as the
-     |      Spark fair scheduler pool.
-     |  
-     |  setLogLevel(self, logLevel)
-     |      Control our logLevel. This overrides any user-defined log settings.
-     |      Valid log levels include: ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE, WARN
-     |  
-     |  show_profiles(self)
-     |      Print the profile stats to stdout
-     |  
-     |  sparkUser(self)
-     |      Get SPARK_USER for user who is running SparkContext.
-     |  
-     |  statusTracker(self)
-     |      Return :class:`StatusTracker` object
-     |  
-     |  stop(self)
-     |      Shut down the SparkContext.
-     |  
-     |  textFile(self, name, minPartitions=None, use_unicode=True)
-     |      Read a text file from HDFS, a local file system (available on all
-     |      nodes), or any Hadoop-supported file system URI, and return it as an
-     |      RDD of Strings.
-     |      
-     |      If use_unicode is False, the strings will be kept as `str` (encoding
-     |      as `utf-8`), which is faster and smaller than unicode. (Added in
-     |      Spark 1.2)
-     |      
-     |      >>> path = os.path.join(tempdir, "sample-text.txt")
-     |      >>> with open(path, "w") as testFile:
-     |      ...    _ = testFile.write("Hello world!")
-     |      >>> textFile = sc.textFile(path)
-     |      >>> textFile.collect()
-     |      ['Hello world!']
-     |  
-     |  union(self, rdds)
-     |      Build the union of a list of RDDs.
-     |      
-     |      This supports unions() of RDDs with different serialized formats,
-     |      although this forces them to be reserialized using the default
-     |      serializer:
-     |      
-     |      >>> path = os.path.join(tempdir, "union-text.txt")
-     |      >>> with open(path, "w") as testFile:
-     |      ...    _ = testFile.write("Hello")
-     |      >>> textFile = sc.textFile(path)
-     |      >>> textFile.collect()
-     |      ['Hello']
-     |      >>> parallelized = sc.parallelize(["World!"])
-     |      >>> sorted(sc.union([textFile, parallelized]).collect())
-     |      ['Hello', 'World!']
-     |  
-     |  wholeTextFiles(self, path, minPartitions=None, use_unicode=True)
-     |      Read a directory of text files from HDFS, a local file system
-     |      (available on all nodes), or any  Hadoop-supported file system
-     |      URI. Each file is read as a single record and returned in a
-     |      key-value pair, where the key is the path of each file, the
-     |      value is the content of each file.
-     |      
-     |      If use_unicode is False, the strings will be kept as `str` (encoding
-     |      as `utf-8`), which is faster and smaller than unicode. (Added in
-     |      Spark 1.2)
-     |      
-     |      For example, if you have the following files::
-     |      
-     |        hdfs://a-hdfs-path/part-00000
-     |        hdfs://a-hdfs-path/part-00001
-     |        ...
-     |        hdfs://a-hdfs-path/part-nnnnn
-     |      
-     |      Do C{rdd = sparkContext.wholeTextFiles("hdfs://a-hdfs-path")},
-     |      then C{rdd} contains::
-     |      
-     |        (a-hdfs-path/part-00000, its content)
-     |        (a-hdfs-path/part-00001, its content)
-     |        ...
-     |        (a-hdfs-path/part-nnnnn, its content)
-     |      
-     |      .. note:: Small files are preferred, as each file will be loaded
-     |          fully in memory.
-     |      
-     |      >>> dirPath = os.path.join(tempdir, "files")
-     |      >>> os.mkdir(dirPath)
-     |      >>> with open(os.path.join(dirPath, "1.txt"), "w") as file1:
-     |      ...    _ = file1.write("1")
-     |      >>> with open(os.path.join(dirPath, "2.txt"), "w") as file2:
-     |      ...    _ = file2.write("2")
-     |      >>> textFiles = sc.wholeTextFiles(dirPath)
-     |      >>> sorted(textFiles.collect())
-     |      [('.../1.txt', '1'), ('.../2.txt', '2')]
-     |  
-     |  ----------------------------------------------------------------------
-     |  Class methods defined here:
-     |  
-     |  getOrCreate(conf=None) from builtins.type
-     |      Get or instantiate a SparkContext and register it as a singleton object.
-     |      
-     |      :param conf: SparkConf (optional)
-     |  
-     |  setSystemProperty(key, value) from builtins.type
-     |      Set a Java system property, such as spark.executor.memory. This must
-     |      must be invoked before instantiating SparkContext.
-     |  
-     |  ----------------------------------------------------------------------
-     |  Data descriptors defined here:
-     |  
-     |  __dict__
-     |      dictionary for instance variables (if defined)
-     |  
-     |  __weakref__
-     |      list of weak references to the object (if defined)
-     |  
-     |  applicationId
-     |      A unique identifier for the Spark application.
-     |      Its format depends on the scheduler implementation.
-     |      
-     |      * in case of local spark app something like 'local-1433865536131'
-     |      * in case of YARN something like 'application_1433865536131_34483'
-     |      
-     |      >>> sc.applicationId  # doctest: +ELLIPSIS
-     |      'local-...'
-     |  
-     |  defaultMinPartitions
-     |      Default min number of partitions for Hadoop RDDs when not given by user
-     |  
-     |  defaultParallelism
-     |      Default level of parallelism to use when not given by user (e.g. for
-     |      reduce tasks)
-     |  
-     |  startTime
-     |      Return the epoch time when the Spark Context was started.
-     |  
-     |  uiWebUrl
-     |      Return the URL of the SparkUI instance started by this SparkContext
-     |  
-     |  version
-     |      The version of Spark on which this application is running.
-     |  
-     |  ----------------------------------------------------------------------
-     |  Data and other attributes defined here:
-     |  
-     |  PACKAGE_EXTENSIONS = ('.zip', '.egg', '.jar')
+</details>
+
+<details>
+    <summary>
+        <b><u>Click to Reveal Expected Output</u></b>
+    </summary>
+
+```
+Help on SparkContext in module pyspark.context object:
+
+class SparkContext(builtins.object)
+ |  SparkContext(master=None, appName=None, sparkHome=None, pyFiles=None, environment=None, batchSize=0, serializer=PickleSerializer(), conf=None, gateway=None, jsc=None, profiler_cls=<class 'pyspark.profiler.BasicProfiler'>)
+ |  
+ |  Main entry point for Spark functionality. A SparkContext represents the
+ |  connection to a Spark cluster, and can be used to create :class:`RDD` and
+ |  broadcast variables on that cluster.
+ |  
+ |  When you create a new SparkContext, at least the master and app name should
+ |  be set, either through the named parameters here or through `conf`.
+ |  
+ |  Parameters
+ |  ----------
+ |  master : str, optional
+ |      Cluster URL to connect to (e.g. mesos://host:port, spark://host:port, local[4]).
+ |  appName : str, optional
+ |      A name for your job, to display on the cluster web UI.
+ |  sparkHome : str, optional
+ |      Location where Spark is installed on cluster nodes.
+ |  pyFiles : list, optional
+ |      Collection of .zip or .py files to send to the cluster
+ |      and add to PYTHONPATH.  These can be paths on the local file
+ |      system or HDFS, HTTP, HTTPS, or FTP URLs.
+ |  environment : dict, optional
+ |      A dictionary of environment variables to set on
+ |      worker nodes.
+ |  batchSize : int, optional
+ |      The number of Python objects represented as a single
+ |      Java object. Set 1 to disable batching, 0 to automatically choose
+ |      the batch size based on object sizes, or -1 to use an unlimited
+ |      batch size
+ |  serializer : :class:`pyspark.serializers.Serializer`, optional
+ |      The serializer for RDDs.
+ |  conf : :py:class:`pyspark.SparkConf`, optional
+ |      An object setting Spark properties.
+ |  gateway : :py:class:`py4j.java_gateway.JavaGateway`,  optional
+ |      Use an existing gateway and JVM, otherwise a new JVM
+ |      will be instantiated. This is only used internally.
+ |  jsc : :py:class:`py4j.java_gateway.JavaObject`, optional
+ |      The JavaSparkContext instance. This is only used internally.
+ |  profiler_cls : type, optional
+ |      A class of custom Profiler used to do profiling
+ |      (default is :class:`pyspark.profiler.BasicProfiler`).
+ |  
+ |  Notes
+ |  -----
+ |  Only one :class:`SparkContext` should be active per JVM. You must `stop()`
+ |  the active :class:`SparkContext` before creating a new one.
+ |  
+ |  :class:`SparkContext` instance is not supported to share across multiple
+ |  processes out of the box, and PySpark does not guarantee multi-processing execution.
+ |  Use threads instead for concurrent processing purpose.
+ |  
+ |  Examples
+ |  --------
+ |  >>> from pyspark.context import SparkContext
+ |  >>> sc = SparkContext('local', 'test')
+ |  >>> sc2 = SparkContext('local', 'test2') # doctest: +IGNORE_EXCEPTION_DETAIL
+ |  Traceback (most recent call last):
+ |      ...
+ |  ValueError: ...
+ |  
+ |  Methods defined here:
+ |  
+ |  __enter__(self)
+ |      Enable 'with SparkContext(...) as sc: app(sc)' syntax.
+ |  
+ |  __exit__(self, type, value, trace)
+ |      Enable 'with SparkContext(...) as sc: app' syntax.
+ |      
+ |      Specifically stop the context on exit of the with block.
+ |  
+ |  __getnewargs__(self)
+ |  
+ |  __init__(self, master=None, appName=None, sparkHome=None, pyFiles=None, environment=None, batchSize=0, serializer=PickleSerializer(), conf=None, gateway=None, jsc=None, profiler_cls=<class 'pyspark.profiler.BasicProfiler'>)
+ |      Initialize self.  See help(type(self)) for accurate signature.
+ |  
+ |  __repr__(self)
+ |      Return repr(self).
+ |  
+ |  accumulator(self, value, accum_param=None)
+ |      Create an :class:`Accumulator` with the given initial value, using a given
+ |      :class:`AccumulatorParam` helper object to define how to add values of the
+ |      data type if provided. Default AccumulatorParams are used for integers
+ |      and floating-point numbers if you do not provide one. For other types,
+ |      a custom AccumulatorParam can be used.
+ |  
+ |  addFile(self, path, recursive=False)
+ |      Add a file to be downloaded with this Spark job on every node.
+ |      The `path` passed can be either a local file, a file in HDFS
+ |      (or other Hadoop-supported filesystems), or an HTTP, HTTPS or
+ |      FTP URI.
+ |      
+ |      To access the file in Spark jobs, use :meth:`SparkFiles.get` with the
+ |      filename to find its download location.
+ |      
+ |      A directory can be given if the recursive option is set to True.
+ |      Currently directories are only supported for Hadoop-supported filesystems.
+ |      
+ |      Notes
+ |      -----
+ |      A path can be added only once. Subsequent additions of the same path are ignored.
+ |      
+ |      Examples
+ |      --------
+ |      >>> from pyspark import SparkFiles
+ |      >>> path = os.path.join(tempdir, "test.txt")
+ |      >>> with open(path, "w") as testFile:
+ |      ...    _ = testFile.write("100")
+ |      >>> sc.addFile(path)
+ |      >>> def func(iterator):
+ |      ...    with open(SparkFiles.get("test.txt")) as testFile:
+ |      ...        fileVal = int(testFile.readline())
+ |      ...        return [x * fileVal for x in iterator]
+ |      >>> sc.parallelize([1, 2, 3, 4]).mapPartitions(func).collect()
+ |      [100, 200, 300, 400]
+ |  
+ |  addPyFile(self, path)
+ |      Add a .py or .zip dependency for all tasks to be executed on this
+ |      SparkContext in the future.  The `path` passed can be either a local
+ |      file, a file in HDFS (or other Hadoop-supported filesystems), or an
+ |      HTTP, HTTPS or FTP URI.
+ |      
+ |      Notes
+ |      -----
+ |      A path can be added only once. Subsequent additions of the same path are ignored.
+ |  
+ |  binaryFiles(self, path, minPartitions=None)
+ |      Read a directory of binary files from HDFS, a local file system
+ |      (available on all nodes), or any Hadoop-supported file system URI
+ |      as a byte array. Each file is read as a single record and returned
+ |      in a key-value pair, where the key is the path of each file, the
+ |      value is the content of each file.
+ |      
+ |      Notes
+ |      -----
+ |      Small files are preferred, large file is also allowable, but may cause bad performance.
+ |  
+ |  binaryRecords(self, path, recordLength)
+ |      Load data from a flat binary file, assuming each record is a set of numbers
+ |      with the specified numerical format (see ByteBuffer), and the number of
+ |      bytes per record is constant.
+ |      
+ |      Parameters
+ |      ----------
+ |      path : str
+ |          Directory to the input data files
+ |      recordLength : int
+ |          The length at which to split the records
+ |  
+ |  broadcast(self, value)
+ |      Broadcast a read-only variable to the cluster, returning a :class:`Broadcast`
+ |      object for reading it in distributed functions. The variable will
+ |      be sent to each cluster only once.
+ |  
+ |  cancelAllJobs(self)
+ |      Cancel all jobs that have been scheduled or are running.
+ |  
+ |  cancelJobGroup(self, groupId)
+ |      Cancel active jobs for the specified group. See :meth:`SparkContext.setJobGroup`.
+ |      for more information.
+ |  
+ |  dump_profiles(self, path)
+ |      Dump the profile stats into directory `path`
+ |  
+ |  emptyRDD(self)
+ |      Create an RDD that has no partitions or elements.
+ |  
+ |  getCheckpointDir(self)
+ |      Return the directory where RDDs are checkpointed. Returns None if no
+ |      checkpoint directory has been set.
+ |      
+ |      .. versionadded:: 3.1
+ |  
+ |  getConf(self)
+ |  
+ |  getLocalProperty(self, key)
+ |      Get a local property set in this thread, or null if it is missing. See
+ |      :meth:`setLocalProperty`.
+ |  
+ |  hadoopFile(self, path, inputFormatClass, keyClass, valueClass, keyConverter=None, valueConverter=None, conf=None, batchSize=0)
+ |      Read an 'old' Hadoop InputFormat with arbitrary key and value class from HDFS,
+ |      a local file system (available on all nodes), or any Hadoop-supported file system URI.
+ |      The mechanism is the same as for :py:meth:`SparkContext.sequenceFile`.
+ |      
+ |      A Hadoop configuration can be passed in as a Python dict. This will be converted into a
+ |      Configuration in Java.
+ |      
+ |      path : str
+ |          path to Hadoop file
+ |      inputFormatClass : str
+ |          fully qualified classname of Hadoop InputFormat
+ |          (e.g. "org.apache.hadoop.mapreduce.lib.input.TextInputFormat")
+ |      keyClass : str
+ |          fully qualified classname of key Writable class (e.g. "org.apache.hadoop.io.Text")
+ |      valueClass : str
+ |          fully qualified classname of value Writable class
+ |          (e.g. "org.apache.hadoop.io.LongWritable")
+ |      keyConverter : str, optional
+ |          fully qualified name of a function returning key WritableConverter
+ |          (None by default)
+ |      valueConverter : str, optional
+ |          fully qualified name of a function returning value WritableConverter
+ |          (None by default)
+ |      conf : dict, optional
+ |          Hadoop configuration, passed in as a dict (None by default)
+ |      batchSize : int, optional
+ |          The number of Python objects represented as a single
+ |          Java object. (default 0, choose batchSize automatically)
+ |  
+ |  hadoopRDD(self, inputFormatClass, keyClass, valueClass, keyConverter=None, valueConverter=None, conf=None, batchSize=0)
+ |      Read an 'old' Hadoop InputFormat with arbitrary key and value class, from an arbitrary
+ |      Hadoop configuration, which is passed in as a Python dict.
+ |      This will be converted into a Configuration in Java.
+ |      The mechanism is the same as for :py:meth:`SparkContext.sequenceFile`.
+ |      
+ |      Parameters
+ |      ----------
+ |      inputFormatClass : str
+ |          fully qualified classname of Hadoop InputFormat
+ |          (e.g. "org.apache.hadoop.mapreduce.lib.input.TextInputFormat")
+ |      keyClass : str
+ |          fully qualified classname of key Writable class (e.g. "org.apache.hadoop.io.Text")
+ |      valueClass : str
+ |          fully qualified classname of value Writable class
+ |          (e.g. "org.apache.hadoop.io.LongWritable")
+ |      keyConverter : str, optional
+ |          fully qualified name of a function returning key WritableConverter
+ |          (None by default)
+ |      valueConverter : str, optional
+ |          fully qualified name of a function returning value WritableConverter
+ |          (None by default)
+ |      conf : dict, optional
+ |          Hadoop configuration, passed in as a dict (None by default)
+ |      batchSize : int, optional
+ |          The number of Python objects represented as a single
+ |          Java object. (default 0, choose batchSize automatically)
+ |  
+ |  newAPIHadoopFile(self, path, inputFormatClass, keyClass, valueClass, keyConverter=None, valueConverter=None, conf=None, batchSize=0)
+ |      Read a 'new API' Hadoop InputFormat with arbitrary key and value class from HDFS,
+ |      a local file system (available on all nodes), or any Hadoop-supported file system URI.
+ |      The mechanism is the same as for :py:meth:`SparkContext.sequenceFile`.
+ |      
+ |      A Hadoop configuration can be passed in as a Python dict. This will be converted into a
+ |      Configuration in Java
+ |      
+ |      Parameters
+ |      ----------
+ |      path : str
+ |          path to Hadoop file
+ |      inputFormatClass : str
+ |          fully qualified classname of Hadoop InputFormat
+ |          (e.g. "org.apache.hadoop.mapreduce.lib.input.TextInputFormat")
+ |      keyClass : str
+ |          fully qualified classname of key Writable class
+ |          (e.g. "org.apache.hadoop.io.Text")
+ |      valueClass : str
+ |          fully qualified classname of value Writable class
+ |          (e.g. "org.apache.hadoop.io.LongWritable")
+ |      keyConverter : str, optional
+ |          fully qualified name of a function returning key WritableConverter
+ |          None by default
+ |      valueConverter : str, optional
+ |          fully qualified name of a function returning value WritableConverter
+ |          None by default
+ |      conf : dict, optional
+ |          Hadoop configuration, passed in as a dict
+ |          None by default
+ |      batchSize : int, optional
+ |          The number of Python objects represented as a single
+ |          Java object. (default 0, choose batchSize automatically)
+ |  
+ |  newAPIHadoopRDD(self, inputFormatClass, keyClass, valueClass, keyConverter=None, valueConverter=None, conf=None, batchSize=0)
+ |      Read a 'new API' Hadoop InputFormat with arbitrary key and value class, from an arbitrary
+ |      Hadoop configuration, which is passed in as a Python dict.
+ |      This will be converted into a Configuration in Java.
+ |      The mechanism is the same as for :py:meth:`SparkContext.sequenceFile`.
+ |      
+ |      Parameters
+ |      ----------
+ |      inputFormatClass : str
+ |          fully qualified classname of Hadoop InputFormat
+ |          (e.g. "org.apache.hadoop.mapreduce.lib.input.TextInputFormat")
+ |      keyClass : str
+ |          fully qualified classname of key Writable class (e.g. "org.apache.hadoop.io.Text")
+ |      valueClass : str
+ |          fully qualified classname of value Writable class
+ |          (e.g. "org.apache.hadoop.io.LongWritable")
+ |      keyConverter : str, optional
+ |          fully qualified name of a function returning key WritableConverter
+ |          (None by default)
+ |      valueConverter : str, optional
+ |          fully qualified name of a function returning value WritableConverter
+ |          (None by default)
+ |      conf : dict, optional
+ |          Hadoop configuration, passed in as a dict (None by default)
+ |      batchSize : int, optional
+ |          The number of Python objects represented as a single
+ |          Java object. (default 0, choose batchSize automatically)
+ |  
+ |  parallelize(self, c, numSlices=None)
+ |      Distribute a local Python collection to form an RDD. Using range
+ |      is recommended if the input represents a range for performance.
+ |      
+ |      Examples
+ |      --------
+ |      >>> sc.parallelize([0, 2, 3, 4, 6], 5).glom().collect()
+ |      [[0], [2], [3], [4], [6]]
+ |      >>> sc.parallelize(range(0, 6, 2), 5).glom().collect()
+ |      [[], [0], [], [2], [4]]
+ |  
+ |  pickleFile(self, name, minPartitions=None)
+ |      Load an RDD previously saved using :meth:`RDD.saveAsPickleFile` method.
+ |      
+ |      Examples
+ |      --------
+ |      >>> tmpFile = NamedTemporaryFile(delete=True)
+ |      >>> tmpFile.close()
+ |      >>> sc.parallelize(range(10)).saveAsPickleFile(tmpFile.name, 5)
+ |      >>> sorted(sc.pickleFile(tmpFile.name, 3).collect())
+ |      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+ |  
+ |  range(self, start, end=None, step=1, numSlices=None)
+ |      Create a new RDD of int containing elements from `start` to `end`
+ |      (exclusive), increased by `step` every element. Can be called the same
+ |      way as python's built-in range() function. If called with a single argument,
+ |      the argument is interpreted as `end`, and `start` is set to 0.
+ |      
+ |      Parameters
+ |      ----------
+ |      start : int
+ |          the start value
+ |      end : int, optional
+ |          the end value (exclusive)
+ |      step : int, optional
+ |          the incremental step (default: 1)
+ |      numSlices : int, optional
+ |          the number of partitions of the new RDD
+ |      
+ |      Returns
+ |      -------
+ |      :py:class:`pyspark.RDD`
+ |          An RDD of int
+ |      
+ |      Examples
+ |      --------
+ |      >>> sc.range(5).collect()
+ |      [0, 1, 2, 3, 4]
+ |      >>> sc.range(2, 4).collect()
+ |      [2, 3]
+ |      >>> sc.range(1, 7, 2).collect()
+ |      [1, 3, 5]
+ |  
+ |  runJob(self, rdd, partitionFunc, partitions=None, allowLocal=False)
+ |      Executes the given partitionFunc on the specified set of partitions,
+ |      returning the result as an array of elements.
+ |      
+ |      If 'partitions' is not specified, this will run over all partitions.
+ |      
+ |      Examples
+ |      --------
+ |      >>> myRDD = sc.parallelize(range(6), 3)
+ |      >>> sc.runJob(myRDD, lambda part: [x * x for x in part])
+ |      [0, 1, 4, 9, 16, 25]
+ |      
+ |      >>> myRDD = sc.parallelize(range(6), 3)
+ |      >>> sc.runJob(myRDD, lambda part: [x * x for x in part], [0, 2], True)
+ |      [0, 1, 16, 25]
+ |  
+ |  sequenceFile(self, path, keyClass=None, valueClass=None, keyConverter=None, valueConverter=None, minSplits=None, batchSize=0)
+ |      Read a Hadoop SequenceFile with arbitrary key and value Writable class from HDFS,
+ |      a local file system (available on all nodes), or any Hadoop-supported file system URI.
+ |      The mechanism is as follows:
+ |      
+ |          1. A Java RDD is created from the SequenceFile or other InputFormat, and the key
+ |             and value Writable classes
+ |          2. Serialization is attempted via Pyrolite pickling
+ |          3. If this fails, the fallback is to call 'toString' on each key and value
+ |          4. :class:`PickleSerializer` is used to deserialize pickled objects on the Python side
+ |      
+ |      Parameters
+ |      ----------
+ |      path : str
+ |          path to sequencefile
+ |      keyClass: str, optional
+ |          fully qualified classname of key Writable class (e.g. "org.apache.hadoop.io.Text")
+ |      valueClass : str, optional
+ |          fully qualified classname of value Writable class
+ |          (e.g. "org.apache.hadoop.io.LongWritable")
+ |      keyConverter : str, optional
+ |          fully qualified name of a function returning key WritableConverter
+ |      valueConverter : str, optional
+ |          fully qualifiedname of a function returning value WritableConverter
+ |      minSplits : int, optional
+ |          minimum splits in dataset (default min(2, sc.defaultParallelism))
+ |      batchSize : int, optional
+ |          The number of Python objects represented as a single
+ |          Java object. (default 0, choose batchSize automatically)
+ |  
+ |  setCheckpointDir(self, dirName)
+ |      Set the directory under which RDDs are going to be checkpointed. The
+ |      directory must be an HDFS path if running on a cluster.
+ |  
+ |  setJobDescription(self, value)
+ |      Set a human readable description of the current job.
+ |      
+ |      Notes
+ |      -----
+ |      If you run jobs in parallel, use :class:`pyspark.InheritableThread` for thread
+ |      local inheritance, and preventing resource leak.
+ |  
+ |  setJobGroup(self, groupId, description, interruptOnCancel=False)
+ |      Assigns a group ID to all the jobs started by this thread until the group ID is set to a
+ |      different value or cleared.
+ |      
+ |      Often, a unit of execution in an application consists of multiple Spark actions or jobs.
+ |      Application programmers can use this method to group all those jobs together and give a
+ |      group description. Once set, the Spark web UI will associate such jobs with this group.
+ |      
+ |      The application can use :meth:`SparkContext.cancelJobGroup` to cancel all
+ |      running jobs in this group.
+ |      
+ |      Notes
+ |      -----
+ |      If interruptOnCancel is set to true for the job group, then job cancellation will result
+ |      in Thread.interrupt() being called on the job's executor threads. This is useful to help
+ |      ensure that the tasks are actually stopped in a timely manner, but is off by default due
+ |      to HDFS-1208, where HDFS may respond to Thread.interrupt() by marking nodes as dead.
+ |      
+ |      If you run jobs in parallel, use :class:`pyspark.InheritableThread` for thread
+ |      local inheritance, and preventing resource leak.
+ |      
+ |      Examples
+ |      --------
+ |      >>> import threading
+ |      >>> from time import sleep
+ |      >>> from pyspark import InheritableThread
+ |      >>> result = "Not Set"
+ |      >>> lock = threading.Lock()
+ |      >>> def map_func(x):
+ |      ...     sleep(100)
+ |      ...     raise RuntimeError("Task should have been cancelled")
+ |      >>> def start_job(x):
+ |      ...     global result
+ |      ...     try:
+ |      ...         sc.setJobGroup("job_to_cancel", "some description")
+ |      ...         result = sc.parallelize(range(x)).map(map_func).collect()
+ |      ...     except Exception as e:
+ |      ...         result = "Cancelled"
+ |      ...     lock.release()
+ |      >>> def stop_job():
+ |      ...     sleep(5)
+ |      ...     sc.cancelJobGroup("job_to_cancel")
+ |      >>> suppress = lock.acquire()
+ |      >>> suppress = InheritableThread(target=start_job, args=(10,)).start()
+ |      >>> suppress = InheritableThread(target=stop_job).start()
+ |      >>> suppress = lock.acquire()
+ |      >>> print(result)
+ |      Cancelled
+ |  
+ |  setLocalProperty(self, key, value)
+ |      Set a local property that affects jobs submitted from this thread, such as the
+ |      Spark fair scheduler pool.
+ |      
+ |      Notes
+ |      -----
+ |      If you run jobs in parallel, use :class:`pyspark.InheritableThread` for thread
+ |      local inheritance, and preventing resource leak.
+ |  
+ |  setLogLevel(self, logLevel)
+ |      Control our logLevel. This overrides any user-defined log settings.
+ |      Valid log levels include: ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE, WARN
+ |  
+ |  show_profiles(self)
+ |      Print the profile stats to stdout
+ |  
+ |  sparkUser(self)
+ |      Get SPARK_USER for user who is running SparkContext.
+ |  
+ |  statusTracker(self)
+ |      Return :class:`StatusTracker` object
+ |  
+ |  stop(self)
+ |      Shut down the SparkContext.
+ |  
+ |  textFile(self, name, minPartitions=None, use_unicode=True)
+ |      Read a text file from HDFS, a local file system (available on all
+ |      nodes), or any Hadoop-supported file system URI, and return it as an
+ |      RDD of Strings.
+ |      The text files must be encoded as UTF-8.
+ |      
+ |      If use_unicode is False, the strings will be kept as `str` (encoding
+ |      as `utf-8`), which is faster and smaller than unicode. (Added in
+ |      Spark 1.2)
+ |      
+ |      Examples
+ |      --------
+ |      >>> path = os.path.join(tempdir, "sample-text.txt")
+ |      >>> with open(path, "w") as testFile:
+ |      ...    _ = testFile.write("Hello world!")
+ |      >>> textFile = sc.textFile(path)
+ |      >>> textFile.collect()
+ |      ['Hello world!']
+ |  
+ |  union(self, rdds)
+ |      Build the union of a list of RDDs.
+ |      
+ |      This supports unions() of RDDs with different serialized formats,
+ |      although this forces them to be reserialized using the default
+ |      serializer:
+ |      
+ |      Examples
+ |      --------
+ |      >>> path = os.path.join(tempdir, "union-text.txt")
+ |      >>> with open(path, "w") as testFile:
+ |      ...    _ = testFile.write("Hello")
+ |      >>> textFile = sc.textFile(path)
+ |      >>> textFile.collect()
+ |      ['Hello']
+ |      >>> parallelized = sc.parallelize(["World!"])
+ |      >>> sorted(sc.union([textFile, parallelized]).collect())
+ |      ['Hello', 'World!']
+ |  
+ |  wholeTextFiles(self, path, minPartitions=None, use_unicode=True)
+ |      Read a directory of text files from HDFS, a local file system
+ |      (available on all nodes), or any  Hadoop-supported file system
+ |      URI. Each file is read as a single record and returned in a
+ |      key-value pair, where the key is the path of each file, the
+ |      value is the content of each file.
+ |      The text files must be encoded as UTF-8.
+ |      
+ |      If `use_unicode` is False, the strings will be kept as `str` (encoding
+ |      as `utf-8`), which is faster and smaller than unicode. (Added in
+ |      Spark 1.2)
+ |      
+ |      For example, if you have the following files:
+ |      
+ |      .. code-block:: text
+ |      
+ |          hdfs://a-hdfs-path/part-00000
+ |          hdfs://a-hdfs-path/part-00001
+ |          ...
+ |          hdfs://a-hdfs-path/part-nnnnn
+ |      
+ |      Do ``rdd = sparkContext.wholeTextFiles("hdfs://a-hdfs-path")``,
+ |      then ``rdd`` contains:
+ |      
+ |      .. code-block:: text
+ |      
+ |          (a-hdfs-path/part-00000, its content)
+ |          (a-hdfs-path/part-00001, its content)
+ |          ...
+ |          (a-hdfs-path/part-nnnnn, its content)
+ |      
+ |      Notes
+ |      -----
+ |      Small files are preferred, as each file will be loaded fully in memory.
+ |      
+ |      Examples
+ |      --------
+ |      >>> dirPath = os.path.join(tempdir, "files")
+ |      >>> os.mkdir(dirPath)
+ |      >>> with open(os.path.join(dirPath, "1.txt"), "w") as file1:
+ |      ...    _ = file1.write("1")
+ |      >>> with open(os.path.join(dirPath, "2.txt"), "w") as file2:
+ |      ...    _ = file2.write("2")
+ |      >>> textFiles = sc.wholeTextFiles(dirPath)
+ |      >>> sorted(textFiles.collect())
+ |      [('.../1.txt', '1'), ('.../2.txt', '2')]
+ |  
+ |  ----------------------------------------------------------------------
+ |  Class methods defined here:
+ |  
+ |  getOrCreate(conf=None) from builtins.type
+ |      Get or instantiate a SparkContext and register it as a singleton object.
+ |      
+ |      Parameters
+ |      ----------
+ |      conf : :py:class:`pyspark.SparkConf`, optional
+ |  
+ |  setSystemProperty(key, value) from builtins.type
+ |      Set a Java system property, such as spark.executor.memory. This must
+ |      must be invoked before instantiating SparkContext.
+ |  
+ |  ----------------------------------------------------------------------
+ |  Readonly properties defined here:
+ |  
+ |  applicationId
+ |      A unique identifier for the Spark application.
+ |      Its format depends on the scheduler implementation.
+ |      
+ |      * in case of local spark app something like 'local-1433865536131'
+ |      * in case of YARN something like 'application_1433865536131_34483'
+ |      
+ |      Examples
+ |      --------
+ |      >>> sc.applicationId  # doctest: +ELLIPSIS
+ |      'local-...'
+ |  
+ |  defaultMinPartitions
+ |      Default min number of partitions for Hadoop RDDs when not given by user
+ |  
+ |  defaultParallelism
+ |      Default level of parallelism to use when not given by user (e.g. for
+ |      reduce tasks)
+ |  
+ |  resources
+ |  
+ |  startTime
+ |      Return the epoch time when the Spark Context was started.
+ |  
+ |  uiWebUrl
+ |      Return the URL of the SparkUI instance started by this SparkContext
+ |  
+ |  version
+ |      The version of Spark on which this application is running.
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data descriptors defined here:
+ |  
+ |  __dict__
+ |      dictionary for instance variables (if defined)
+ |  
+ |  __weakref__
+ |      list of weak references to the object (if defined)
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data and other attributes defined here:
+ |  
+ |  PACKAGE_EXTENSIONS = ('.zip', '.egg', '.jar')
+```
+
+</details>
+
+### Investigating Specific Attributes
+
+Refer to the [PySpark documentation](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.SparkContext.html) to find the appropriate attributes to answer these questions.
+
+### Spark Version
+
+What version of Spark is the application running?
+
+---
+
+<details>
+    <summary>
+        <b><u>Click to Reveal Code</u></b>
+    </summary>
+
+```python
+# Spark version
+sc.version
+```
     
+</details>
 
+### Start Time
 
-You should also have a look at [Spark's SparkContext Documentation Page](https://spark.apache.org/docs/0.6.0/api/core/spark/SparkContext.html) to explore these in further detail.
+What time was the Spark Context created?
 
-Let's try to check a few spark context attributes including `SparkContext.version` and `SparkContext.defaultParalellism` to check the current version of Apache Spark and number of cores being used for parallel processing.
+---
 
-
-```python
-# Check the number of cores being used
-print ('Default number of cores being used:', sc.defaultParallelism) 
-
-# Check for the current version of Spark
-print ('Current version of Spark:', sc.version)
-
-# Default number of cores being used: 2
-# Current version of Spark: 2.3.1
-```
-
-    Default number of cores being used: 4
-    Current version of Spark: 2.3.1
-
-
-Let's also check the name of current application by using `SparkContext.appName` attribute. 
-
+<details>
+    <summary>
+        <b><u>Click to Reveal Code</u></b>
+    </summary>
 
 ```python
-# Check the name of application currently running in spark environment
-sc.appName
-
-# 'pyspark-shell'
+# Start time
+sc.startTime
 ```
+    
+</details>
 
+Note that this is the epoch time so it will appear as a large integer.
 
+### All Configuration Settings
 
+We can access the complete configuration settings (including all defaults) for the current SparkContext by chaining together the `getConf()` method and the `getAll()` method.
 
-    'pyspark-shell'
+---
 
-
-
-We can access complete configuration settings (including all defaults) for the current spark context using `_conf.getAll()` method. 
-
+<details>
+    <summary>
+        <b><u>Click to Reveal Code</u></b>
+    </summary>
 
 ```python
- sc._conf.getAll()
+# All configuration settings
+sc.getConf().getAll()
 ```
+    
+</details>
 
+## Shutting Down the SparkContext
 
+When you are finished using a SparkContext, be sure to call the `stop` method. This will allow you to create another SparkContext in the future.
 
+---
 
-    [('spark.driver.port', '52734'),
-     ('spark.rdd.compress', 'True'),
-     ('spark.serializer.objectStreamReset', '100'),
-     ('spark.master', 'local[*]'),
-     ('spark.executor.id', 'driver'),
-     ('spark.submit.deployMode', 'client'),
-     ('spark.driver.host', '10.248.4.30'),
-     ('spark.app.id', 'local-1558359977714'),
-     ('spark.ui.showConsoleProgress', 'true'),
-     ('spark.app.name', 'pyspark-shell')]
-
-
-
-A SparkContext can be shut down using `SparkContext.stop()` method. Let's use this method to shut down the current spark context. 
-
+<details>
+    <summary>
+        <b><u>Click to Reveal Code</u></b>
+    </summary>
 
 ```python
 # Shut down SparkContext
 sc.stop()
 ```
+    
+</details>
 
-Once shut down, you can no longer access spark functionality before starting a new SparkContext. 
+Once shut down, you can no longer access Spark functionality before starting a new SparkContext. 
 
 ## Additional Resources
 
@@ -812,4 +1006,4 @@ Once shut down, you can no longer access spark functionality before starting a n
 
 ## Summary
 
-In this short lab, we saw how SparkContext is used as an entry point to Spark applications. We learned how to start a SparkContext, how to list and use some of the attributes and methods in SparkContext and how to shut it down. Students are encouraged to explore other attributes and methods offered by the `sc` object. Some of these, namely creating and transforming datasets as RDDs will be explored in later labs. 
+In this short lab, we saw how SparkContext is used as an entry point to Spark applications. We learned how to start a SparkContext, how to list and use some of the attributes and methods in SparkContext and how to shut it down. Students are encouraged to explore other attributes and methods offered by the `sc` object. Some of these, namely creating and transforming datasets as RDDs, will be explored in later labs. 
